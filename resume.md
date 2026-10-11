@@ -13,11 +13,11 @@ AI/ML Data Engineer with 4.5+ years of enterprise experience specializing in clo
 
 ## Technical Expertise
 
-- **AI / GenAI & Agentic Systems:** Anthropic Claude API (tool-use / function calling), Multi-agent orchestration (Supervisor-Specialist architecture), Agent stateful memory, Prompt-driven tool routing, LLM workflow automation.
+- **AI / GenAI & Agentic Systems:** LLMs, Anthropic Claude API, Multi-Agent Orchestration (Supervisor-Specialist), Tool-Use / Function Calling, LangChain, LlamaIndex, RAG (Retrieval-Augmented Generation), Databricks Vector Search, Embeddings, Prompt Engineering, Agent Memory, ML / NLP, MLOps (MLflow).
 - **Data Platforms & Lakehouse:** Snowflake (Stored procedures, dynamic SQL, Masking policies, Row access policies), Databricks (Jobs, clusters, Delta Lake, notebooks, Unity Catalog), ADLS Gen2, Apache Iceberg, Apache Kafka.
 - **Languages:** Python, SQL, PySpark.
-- **Integration & DevOps:** REST APIs (Azure DevOps, SharePoint / Microsoft Graph, GitHub), HashiCorp Vault, Power Automate, Azure Data Factory (ADF), Docker, Git, CI/CD, Apache Airflow.
-- **Engineering Practices & Governance:** Production hardening (Circuit breakers, Exponential backoff/retry, Automated testing), Data Governance (DGO certification), Agile / SAFe delivery, Cross-team stakeholder management.
+- **Integration & DevOps:** REST APIs (Azure DevOps, SharePoint / Microsoft Graph, GitHub), HashiCorp Vault, Azure Data Factory (ADF), Docker, Git, CI/CD.
+- **Practices & Governance:** Data Governance, Data Quality Management, Metadata Management, Data Security & Access Controls (PII Masking), SDLC, Agile / Scrum.
 - **BI & Visualization:** Tableau Desktop / Server, Streamlit.
 
 ---

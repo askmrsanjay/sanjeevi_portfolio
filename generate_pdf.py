@@ -5,18 +5,66 @@ from reportlab.lib.units import inch
 from reportlab.lib.colors import HexColor
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, KeepTogether, ListFlowable, ListItem
+    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, PageBreak
 )
+from reportlab.pdfgen import canvas
+
+class NumberedCanvas(canvas.Canvas):
+    """
+    Two-pass canvas to dynamically compute and render total page count
+    along with professional running headers and footers.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NumberedCanvas, self).__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        num_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_decorations(num_pages)
+            super(NumberedCanvas, self).showPage()
+        super(NumberedCanvas, self).save()
+
+    def draw_decorations(self, page_count):
+        self.saveState()
+        self.setFont("Helvetica", 8)
+        self.setFillColor(HexColor("#64748b")) # Slate 500
+        
+        # Running Footer on all pages
+        footer_line_y = 26
+        footer_text_y = 15
+        self.setStrokeColor(HexColor("#e2e8f0")) # Slate 200 divider
+        self.setLineWidth(0.5)
+        self.line(36, footer_line_y, letter[0] - 36, footer_line_y)
+        
+        self.drawString(36, footer_text_y, "Sanjeevi M  |  AI/ML Data Engineer")
+        page_text = f"Page {self._pageNumber} of {page_count}"
+        self.drawRightString(letter[0] - 36, footer_text_y, page_text)
+
+        # Running Header on page 2 onwards
+        if self._pageNumber > 1:
+            header_text_y = letter[1] - 20
+            header_line_y = letter[1] - 25
+            self.drawString(36, header_text_y, "SANJEEVI M  |  AI/ML Data Engineer")
+            self.drawRightString(letter[0] - 36, header_text_y, "Professional Experience (Cont.) & Projects")
+            self.line(36, header_line_y, letter[0] - 36, header_line_y)
+
+        self.restoreState()
 
 def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
-    # Target 0.5 in margins for maximum content space and clean layout
+    # Target 0.5 in horizontal margins (36pt) and balanced vertical margins (36pt top, 32pt bottom)
     doc = SimpleDocTemplate(
         output_filename,
         pagesize=letter,
         leftMargin=36,
         rightMargin=36,
         topMargin=36,
-        bottomMargin=36
+        bottomMargin=32
     )
 
     styles = getSampleStyleSheet()
@@ -28,13 +76,13 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     TEXT_MUTED = HexColor("#475569")   # Slate 600
     BORDER_COLOR = HexColor("#cbd5e1") # Slate 300
 
-    # Custom Styles
+    # Typography & Component Styles
     name_style = ParagraphStyle(
         'ResumeName',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=20,
-        leading=24,
+        fontSize=19,
+        leading=22,
         textColor=PRIMARY,
         alignment=1 # Center
     )
@@ -43,8 +91,8 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         'ResumeTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=12,
-        leading=16,
+        fontSize=11,
+        leading=14,
         textColor=ACCENT,
         alignment=1
     )
@@ -54,7 +102,7 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         parent=styles['Normal'],
         fontName='Helvetica',
         fontSize=8.5,
-        leading=12,
+        leading=11.5,
         textColor=TEXT_MUTED,
         alignment=1
     )
@@ -63,11 +111,11 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         'SectionHeading',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=11,
-        leading=15,
+        fontSize=10.5,
+        leading=13.5,
         textColor=PRIMARY,
-        spaceBefore=8,
-        spaceAfter=3,
+        spaceBefore=5,
+        spaceAfter=2,
         keepWithNext=True
     )
 
@@ -75,8 +123,8 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         'ResumeBody',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9,
-        leading=13,
+        fontSize=8.5,
+        leading=11.8,
         textColor=TEXT_MAIN,
         alignment=4 # Justify
     )
@@ -86,11 +134,11 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         parent=styles['Normal'],
         fontName='Helvetica',
         fontSize=8.5,
-        leading=12.5,
+        leading=11.8,
         textColor=TEXT_MAIN,
-        leftIndent=14,
-        firstLineIndent=-10,
-        spaceAfter=2.5
+        leftIndent=12,
+        firstLineIndent=-8,
+        spaceAfter=1.8
     )
 
     role_title_style = ParagraphStyle(
@@ -98,7 +146,7 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
         fontSize=9.5,
-        leading=13.5,
+        leading=13,
         textColor=PRIMARY,
         keepWithNext=True
     )
@@ -107,8 +155,8 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         'CompanySub',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=9,
-        leading=13,
+        fontSize=8.5,
+        leading=11.5,
         textColor=ACCENT,
         keepWithNext=True
     )
@@ -117,21 +165,23 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         'SubpartHeading',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=9,
-        leading=13,
+        fontSize=8.5,
+        leading=11.5,
         textColor=TEXT_MAIN,
-        spaceBefore=3,
-        spaceAfter=2,
+        spaceBefore=2,
+        spaceAfter=1,
         keepWithNext=True
     )
 
     story = []
 
+    # ==================== PAGE 1 ====================
+
     # --- Header ---
     story.append(Paragraph("SANJEEVI M", name_style))
     story.append(Spacer(1, 2))
     story.append(Paragraph("AI/ML Data Engineer", title_style))
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 2))
     
     contacts = (
         'Chennai, Tamil Nadu, India &nbsp;|&nbsp; +91 8610889030 &nbsp;|&nbsp; '
@@ -142,12 +192,12 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         '<a href="https://askmrsanjay.github.io/sanjeevi_portfolio/"><font color="#2563eb">Online Portfolio</font></a>'
     )
     story.append(Paragraph(contacts, contact_style))
-    story.append(Spacer(1, 4))
-    story.append(HRFlowable(width="100%", thickness=1, color=PRIMARY, spaceBefore=2, spaceAfter=4))
+    story.append(Spacer(1, 2))
+    story.append(HRFlowable(width="100%", thickness=1, color=PRIMARY, spaceBefore=1, spaceAfter=2))
 
     # --- Professional Summary ---
     story.append(Paragraph("PROFESSIONAL SUMMARY", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
     summary_text = (
         "<b>AI/ML Data Engineer</b> with 4.5+ years of enterprise experience specializing in cloud data platform automation "
         "(Snowflake, Databricks, Delta Lake, PySpark) and applied GenAI/agentic tooling (Anthropic Claude API, multi-agent systems, "
@@ -156,26 +206,26 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
         "Comfortable owning high-impact initiatives from analysis through POC, production deployment, and executive stakeholder demos."
     )
     story.append(Paragraph(summary_text, body_style))
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 1.5))
 
     # --- Technical Expertise ---
     story.append(Paragraph("TECHNICAL EXPERTISE", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
     skills = [
-        "<b>AI / GenAI & Agentic Systems:</b> Anthropic Claude API (tool-use / function calling), Multi-agent orchestration (Supervisor-Specialist architecture), Stateful memory, Prompt-driven tool routing, LLM workflow automation.",
+        "<b>AI / GenAI & Agentic Systems:</b> LLMs, Anthropic Claude API, Multi-Agent Orchestration (Supervisor-Specialist), Tool-Use / Function Calling, LangChain, LlamaIndex, RAG (Retrieval-Augmented Generation), Databricks Vector Search, Embeddings, Prompt Engineering, Agent Memory, ML / NLP, MLOps (MLflow).",
         "<b>Data Platforms & Lakehouse:</b> Snowflake (Stored procedures, dynamic SQL, Masking policies, Row access policies), Databricks (Jobs, Delta Lake, notebooks, Unity Catalog), ADLS Gen2, Apache Iceberg, Kafka.",
         "<b>Languages:</b> Python, SQL, PySpark.",
-        "<b>Integration & DevOps:</b> REST APIs (Azure DevOps, SharePoint / Microsoft Graph, GitHub), HashiCorp Vault, Power Automate, ADF, Docker, Git, CI/CD, Airflow.",
-        "<b>Practices & Governance:</b> Production hardening (Circuit breakers, Exponential backoff/retry, Automated testing), Data Governance (DGO certification), Agile / SAFe delivery.",
+        "<b>Integration & DevOps:</b> REST APIs (Azure DevOps, SharePoint / Microsoft Graph, GitHub), HashiCorp Vault, ADF (Azure Data Factory), Docker, Git, CI/CD.",
+        "<b>Practices & Governance:</b> Data Governance, Data Quality Management, Metadata Management, Data Security & Access Controls (PII Masking), SDLC, Agile / Scrum.",
         "<b>BI & Visualization:</b> Tableau Desktop / Server, Streamlit."
     ]
     for s in skills:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{s}", bullet_style))
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 1.5))
 
     # --- Verified Certifications ---
     story.append(Paragraph("VERIFIED CERTIFICATIONS", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
     certs = [
         "<b>Claude Certified Architect Foundations</b> &mdash; <a href=\"https://www.credly.com/badges/90042b67-2d12-4936-84d1-f3e9f82de530\"><font color=\"#2563eb\">Verify on Credly</font></a>",
         "<b>Databricks Certified Generative AI Engineer Associate</b> &mdash; <a href=\"https://credentials.databricks.com/4405b202-1f50-4869-949f-a65244adac1a#acc.8CUuo6BV\"><font color=\"#2563eb\">Verify on Databricks</font></a>",
@@ -184,19 +234,19 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     ]
     for c in certs:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{c}", bullet_style))
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 1.5))
 
-    # --- Professional Experience ---
+    # --- Professional Experience (Cognizant fits completely on Page 1) ---
     story.append(Paragraph("PROFESSIONAL EXPERIENCE", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
 
     # Cognizant
     cog_header = "<b>Cognizant Technology Solutions</b> (Client: Humana) &nbsp;|&nbsp; <i>Oct 2025 – Present</i>"
     story.append(Paragraph(cog_header, role_title_style))
     story.append(Paragraph("AI/ML Data Engineer — ODMP (Operational Data Management Platform)", company_sub_style))
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1))
 
-    # Part 1
+    # Cognizant Part 1
     story.append(Paragraph("<u>Snowflake Provisioning & Dynamic Field-Masking Automation</u>", subpart_heading_style))
     cog_bullets_1 = [
         "<b>Metadata-Driven Masking Framework:</b> Designed and deployed a dynamic masking engine via a Python stored procedure (<code>SP_GENERATE_MASKED_VIEW</code>) reading role/entitlement config rules to auto-generate secure, role-aware Snowflake views with column masking and row-level filtering.",
@@ -207,8 +257,8 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     for b in cog_bullets_1:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{b}", bullet_style))
 
-    # Part 2
-    story.append(Spacer(1, 2))
+    # Cognizant Part 2
+    story.append(Spacer(1, 1))
     story.append(Paragraph("<u>Data Acquisition & Cross-Platform Lakehouse Integration</u>", subpart_heading_style))
     cog_bullets_2 = [
         "<b>End-to-End API Acquisition Pipeline:</b> Delivered a compliant API pipeline acquiring 10-year historical and incremental Call Simulator training data into Snowflake (staging → target, compliance schema, DGO-certified source) and authored the Interface Control Document (ICD).",
@@ -219,13 +269,18 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     for b in cog_bullets_2:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{b}", bullet_style))
 
-    story.append(Spacer(1, 4))
+    # ==================== PAGE 2 ====================
+    story.append(PageBreak())
+
+    # --- Professional Experience Continued ---
+    story.append(Paragraph("PROFESSIONAL EXPERIENCE (CONT.)", section_heading))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
 
     # Infosys
     inf_header = "<b>Infosys Ltd</b> (Clients: Nike and Apple) &nbsp;|&nbsp; <i>May 2022 – Oct 2025</i>"
     story.append(Paragraph(inf_header, role_title_style))
     story.append(Paragraph("Technology Analyst", company_sub_style))
-    story.append(Spacer(1, 2))
+    story.append(Spacer(1, 1.5))
     inf_bullets = [
         "Designed and maintained end-to-end ETL pipelines in Azure Databricks processing large-scale enterprise data for Nike and Apple.",
         "Engineered Change Data Capture (CDC) pipelines for customer billing and sales orders achieving &lt;1% latency.",
@@ -235,11 +290,11 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     for b in inf_bullets:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{b}", bullet_style))
 
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 2.5))
 
     # --- Key Projects & Initiatives ---
     story.append(Paragraph("KEY PROJECTS & INITIATIVES", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
 
     projects = [
         ("<b>ODMP Multi-Agent Engineering Assistant</b> | <i>Claude API, Multi-Agent, Python, Azure DevOps, Databricks</i>",
@@ -259,17 +314,17 @@ def build_pdf(output_filename="sanjeevi_ai_ml_data_engineer.pdf"):
     for p_title, p_desc in projects:
         story.append(Paragraph(f"&bull;&nbsp;&nbsp;{p_title}", bullet_style))
         story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;{p_desc}", bullet_style))
-        story.append(Spacer(1, 1))
+        story.append(Spacer(1, 1.5))
 
     story.append(Spacer(1, 2))
 
     # --- Education ---
     story.append(Paragraph("EDUCATION", section_heading))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=3))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER_COLOR, spaceBefore=0, spaceAfter=2))
     story.append(Paragraph("<b>Post Graduate in Statistics</b> &nbsp;|&nbsp; Presidency College, Chennai (May 2019)", body_style))
 
-    # Build Document
-    doc.build(story)
+    # Build Document with NumberedCanvas for dynamic total page count and headers/footers
+    doc.build(story, canvasmaker=NumberedCanvas)
     print(f"Successfully generated {output_filename} ({os.path.getsize(output_filename)} bytes)")
 
 if __name__ == '__main__':
